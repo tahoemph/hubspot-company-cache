@@ -41,7 +41,6 @@ cache.
 
 You can use this to find companies by name like this:
 
-```
 companyCaches to find companies by name like this:
 
 ```
