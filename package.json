@@ -1,6 +1,6 @@
 {
   "name": "hubspot-company-cache",
-  "version": "1.0.0",
+  "version": "0.5.0",
   "description": "This maintains a local in-memory cache of hubspot companies",
   "main": "index.js",
   "scripts": {
