@@ -1,0 +1,22 @@
+{
+  "name": "hubspot-company-cache",
+  "version": "1.0.0",
+  "description": "This maintains a local in-memory cache of hubspot companies",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tahoemph/hubspot-company-cache.git"
+  },
+  "author": "Michael Hunter",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tahoemph/hubspot-company-cache/issues"
+  },
+  "homepage": "https://github.com/tahoemph/hubspot-company-cache#readme",
+  "dependencies": {
+    "lodash": "^4.17.11"
+  }
+}
