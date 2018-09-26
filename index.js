@@ -1,9 +1,4 @@
-import _ from 'lodash';
-
-// Helper function for retrieving hubspot properties.
-function getPropValue(obj, propName, defaultValue = undefined) {
-  return _.get(_.get(obj.properties, propName, {}), 'value', defaultValue);
-}
+const _ = require('lodash');
 
 /*
  * We need to be able to search hubspot companies to do some de-duping.
@@ -16,25 +11,60 @@ function getPropValue(obj, propName, defaultValue = undefined) {
  * to date through an endpoint which allows us to get companies
  * in reverse chronological order.
  */
-class CompanyCache {
-  constructor(hspot) {
+class HubspotCompanyCache {
+  constructor(hspot, opts = {}) {
     this.companyCachePromise = null;
     this.companyCache = {};
-    this.companyUpdateInProgress = null;
+    this.companyUpdateInProgress = false;
     this.companyLastUpdate = null;
     this.hspot = hspot;
-  }
 
-  // Private
-  findCompanyInCache(name) {
-    return (this.companyCache[name]);
-  }
-
-  putCompanyInCache(company) {
-    const name = getPropValue(company, 'name');
-    if (!this.findCompanyInCache(name)) {
-      this.companyCache[name] = company;
+    if (!opts.dontSchedule) {
+      this.updateProcess = setInterval(() => {
+        this.update();
+      }, 5*60*1000);
     }
+  }
+
+  /*
+   * Since Javascript has not way of cleaning up after
+   * objects other then completely GCng them we provide
+   * an interface for cleaning up internal resources that
+   * might nto be GC'd.
+   */
+  destroy() {
+    if (this.updateProcess) {
+      clearInterval(this.updateProcess);
+    }
+  }
+
+  // Helper function for retrieving hubspot properties.
+  static getPropValue(obj, propName, defaultValue = undefined) {
+    return _.get(_.get(obj.properties, propName, {}), 'value', defaultValue);
+  }
+
+  // Public iterator interface.
+  [Symbol.iterator]() {
+    return {
+      // Fix the keys we iterate over.
+      keys: Object.keys(this.companyCache),
+      parent: this,
+      next() {
+        let nextValue;
+        do {
+          nextValue = this.parent.companyCache[this.keys.pop()];
+        } while (!nextValue && this.keys.length >= 1);
+        return {
+          done: this.keys.length === 0,
+          value: nextValue
+        }
+      }
+    }
+  }
+
+  // private utility function
+  putCompanyInCache(company) {
+    this.companyCache[company.companyId] = company;
   }
 
   // No-op if it has already been called
@@ -50,7 +80,8 @@ class CompanyCache {
           hubspotRV.companies.forEach(company => this.putCompanyInCache(company));
           maxCreatedDate = Math.max(
             maxCreatedDate,
-            Math.max(...hubspotRV.companies.map(company => getPropValue(company, 'createdate', 0)))
+            Math.max(...hubspotRV.companies.map(
+              company => HubspotCompanyCache.getPropValue(company, 'createdate', 0)))
           );
           opts.offset = hubspotRV.offset;
         } while (hubspotRV['has-more']);
@@ -61,47 +92,42 @@ class CompanyCache {
     return this.companyCachePromise;
   }
 
-  // private
+  // Execute at a regular interval to update the cache.
   async update() {
+    await this.fill();  // in case this hasn't happened yet
     if (this.companyUpdateInProgress) {
-      // Block if somebody is ready doing this
-      // We could optimize and do a search after this
-      // but we expect this collision to happen
-      // infrequently and the update should be quick.
-      await this.companyUpdateInProgress;
+      // return if an update is already happening.
+      return false;
     }
 
     // Grab our indicator that we are updating
-    this.companyUpdateInProgress = new Promise(async (resolve) => {
-      let hubspotRV;
-      let newUpdate;
-      const futureDate = (new Date()).getTime() + (24 * 60 * 60 * 1000);
-      const opts = {properties: ['createdate', 'environment', 'name']};
-      do {
-        hubspotRV = await this.hspot.companies.getRecentlyModified(opts);
-        hubspotRV.results.forEach(company => this.putCompanyInCache(company));
-        opts.offset = hubspotRV.offset;
-        newUpdate = newUpdate || getPropValue(hubspotRV.results[0], 'createdate', null);
-      } while (hubspotRV['has-more'] &&
-        getPropValue(hubspotRV.results[hubspotRV.results.length - 1], 'createdate', futureDate) > this.companyLastUpdate);
-      this.companyLastUpdate = newUpdate;
-      resolve(this.companyCache);
-    });
+    this.companyUpdateInProgress = true;
 
-    return this.companyUpdateInProgress;
-  }
+    let hubspotRV;
+    let newUpdate;
+    const futureDate = (new Date()).getTime() + (24 * 60 * 60 * 1000);
+    const opts = {properties: ['createdate', 'environment', 'name']};
+    do {
+      hubspotRV = await this.hspot.companies.getRecentlyModified(opts);
+      hubspotRV.results.forEach(company => this.putCompanyInCache(company));
+      opts.offset = hubspotRV.offset;
+      newUpdate = newUpdate ||
+        HubspotCompanyCache.getPropValue(hubspotRV.results[0], 'createdate', null);
+    } while (hubspotRV['has-more'] &&
+      HubspotCompanyCache.getPropValue(
+        hubspotRV.results[hubspotRV.results.length - 1],
+        'createdate',
+        futureDate) > this.companyLastUpdate
+    );
+    this.companyLastUpdate = newUpdate;
 
-  // primary public interface
-  async findCompany(name) {
-    const this.hspot = await getHubspot();
-    await this.fill();
+    // release our indicator that we are updating
+    this.companyUpdateInProgress = false;
 
-    const company = this.findCompanyInCache(name);
-    if (company) {
-      return company;
-    }
-
-    await this.update();
-    return this.findCompanyInCache(name);
+    return true;
   }
 }
+
+module.exports = {
+  HubspotCompanyCache
+};

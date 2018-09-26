@@ -18,5 +18,8 @@
   "homepage": "https://github.com/tahoemph/hubspot-company-cache#readme",
   "dependencies": {
     "lodash": "^4.17.11"
+  },
+  "devDependencies": {
+    "hubspot": "^1.3.2"
   }
 }

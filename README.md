@@ -42,7 +42,11 @@ cache.
 You can use this to find companies by name like this:
 
 ```
-companyCache.findCompanyInCache('My Company');
+for (const company of companyCache) {
+  if (HubspotCompanyCache.getPropValue(company, 'name') === 'My Company') {
+    ...
+  }
+}
 ```
 
 The current cache policy is to fill when there is
