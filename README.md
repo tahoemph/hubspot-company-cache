@@ -62,9 +62,11 @@ Thus the API isn't stable in any sense of the word.
 Work to be done before this is something I
 would use includes
 
+1. Example program.
 1. Tests
 1. An interface to iterate over the cache (search other then name)
+1. An interface to ask for specific properties on object.
 1. Stable API
-1. Remove the few bits of lodash use to reduce weight.
-1. Remove dependence on https://github.com/brainflake/node-hubspot
-  ( Note that I like this API, just a lot to drag in.)
+1. Remove the use of lodash use to reduce weight.
+1. Abstract cache interface out so that others (e.g. redis) could be substituted.
+1. Ability to emit events when changed / new objects are found (==> allow user to keep own search structure).
