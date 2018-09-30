@@ -4,7 +4,7 @@ const readline = require('readline');
 
 const { HubspotCompanyCache } = require('./index.js');
 
-async function main() {
+async function main () {
   /*
    * This file is in the form of a json object containing
    * an API Key (object key 'key').
@@ -40,8 +40,7 @@ async function main() {
     if (!found) {
       console.log('nothing found');
     }
-  } while(true);
-
+  } while (true);
 }
 
 main().then(status => process.exit(status));

@@ -62,9 +62,7 @@ Thus the API isn't stable in any sense of the word.
 Work to be done before this is something I
 would use includes
 
-1. Example program.
 1. Tests
-1. An interface to iterate over the cache (search other then name)
 1. An interface to ask for specific properties on object.
 1. Stable API
 1. Remove the use of lodash use to reduce weight.

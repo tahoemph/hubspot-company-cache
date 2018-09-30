@@ -12,7 +12,7 @@ const _ = require('lodash');
  * in reverse chronological order.
  */
 class HubspotCompanyCache {
-  constructor(hspot, opts = {}) {
+  constructor (hspot, opts = {}) {
     this.companyCachePromise = null;
     this.companyCache = {};
     this.companyUpdateInProgress = false;
@@ -22,7 +22,7 @@ class HubspotCompanyCache {
     if (!opts.dontSchedule) {
       this.updateProcess = setInterval(() => {
         this.update();
-      }, 5*60*1000);
+      }, 5 * 60 * 1000);
     }
   }
 
@@ -32,24 +32,24 @@ class HubspotCompanyCache {
    * an interface for cleaning up internal resources that
    * might nto be GC'd.
    */
-  destroy() {
+  destroy () {
     if (this.updateProcess) {
       clearInterval(this.updateProcess);
     }
   }
 
   // Helper function for retrieving hubspot properties.
-  static getPropValue(obj, propName, defaultValue = undefined) {
+  static getPropValue (obj, propName, defaultValue = undefined) {
     return _.get(_.get(obj.properties, propName, {}), 'value', defaultValue);
   }
 
   // Public iterator interface.
-  [Symbol.iterator]() {
+  [Symbol.iterator] () {
     return {
       // Fix the keys we iterate over.
       keys: Object.keys(this.companyCache),
       parent: this,
-      next() {
+      next () {
         let nextValue;
         do {
           nextValue = this.parent.companyCache[this.keys.pop()];
@@ -63,18 +63,18 @@ class HubspotCompanyCache {
   }
 
   // private utility function
-  putCompanyInCache(company) {
+  putCompanyInCache (company) {
     this.companyCache[company.companyId] = company;
   }
 
   // No-op if it has already been called
   // Can be used publically to kick off filling cache.
-  fill() {
+  fill () {
     if (!this.companyCachePromise) {
       this.companyCachePromise = new Promise(async (resolve) => {
         let hubspotRV;
         let maxCreatedDate = 0;
-        const opts = {properties: ['createdate', 'environment', 'name']};
+        const opts = { properties: ['createdate', 'environment', 'name'] };
         do {
           hubspotRV = await this.hspot.companies.get(opts);
           hubspotRV.companies.forEach(company => this.putCompanyInCache(company));
@@ -93,8 +93,8 @@ class HubspotCompanyCache {
   }
 
   // Execute at a regular interval to update the cache.
-  async update() {
-    await this.fill();  // in case this hasn't happened yet
+  async update () {
+    await this.fill(); // in case this hasn't happened yet
     if (this.companyUpdateInProgress) {
       // return if an update is already happening.
       return false;
@@ -106,7 +106,7 @@ class HubspotCompanyCache {
     let hubspotRV;
     let newUpdate;
     const futureDate = (new Date()).getTime() + (24 * 60 * 60 * 1000);
-    const opts = {properties: ['createdate', 'environment', 'name']};
+    const opts = { properties: ['createdate', 'environment', 'name'] };
     do {
       hubspotRV = await this.hspot.companies.getRecentlyModified(opts);
       hubspotRV.results.forEach(company => this.putCompanyInCache(company));
